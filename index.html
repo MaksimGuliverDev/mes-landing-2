@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MES — прослеживаемость производства от заказа до отгрузки</title>
+<meta name="description" content="Система управления производством: заказ, техпроцесс и каждая операция в одной прослеживаемой цепочке. Запишитесь на вебинар.">
+<meta property="og:title" content="MES — прослеживаемость производства от заказа до отгрузки">
+<meta property="og:description" content="Каждое изделие прослеживается до последней операции. Запишитесь на вебинар.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314306A'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23E3AE3F' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EDF0F5;
+    --panel: #FFFFFF;
+    --ink: #0E1830;
+    --mute: #4A566F;
+    --line: #CBD3E2;
+    --mask: #14306A;
+    --mask-deep: #0C2150;
+    --mask-line: #2C4A88;
+    --on-mask: #E8EEFA;
+    --on-mask-mute: #A9BAD9;
+    --gold: #E3AE3F;
+    --gold-hover: #F0BE55;
+    --ok: #1F9D6B;
+    --bad: #E2483A;
+    --display: "Unbounded", "Onest", system-ui, sans-serif;
+    --text: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--text);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+  @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+  h1, h2, h3 { font-family: var(--display); font-weight: 500; letter-spacing: -0.02em; margin: 0; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--text); font-size: 16px; font-weight: 600;
+    padding: 14px 24px; border-radius: 6px; border: 1.5px solid transparent;
+    cursor: pointer; text-decoration: none; line-height: 1.2;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn-gold { background: var(--gold); color: #1A1204; }
+  .btn-gold:hover { background: var(--gold-hover); }
+  .btn-line { background: transparent; color: var(--on-mask); border-color: var(--mask-line); }
+  .btn-line:hover { border-color: var(--on-mask-mute); }
+
+  /* ---------- hero ---------- */
+  .hero { background: var(--mask); color: var(--on-mask); position: relative; overflow: hidden; }
+  .hero::before {
+    /* faint via-hole grid, like an unpopulated board */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(255,255,255,.10) 1.2px, transparent 1.6px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 85%);
+  }
+  .hero .wrap { position: relative; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 26px 0; }
+  .wordmark { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; text-decoration: none; }
+  .topbar nav { display: flex; gap: 28px; }
+  .topbar nav a { text-decoration: none; font-size: 15px; color: var(--on-mask-mute); }
+  .topbar nav a:hover { color: #fff; }
+  @media (max-width: 560px) { .topbar nav a:not(:last-child) { display: none; } }
+
+  .hero-copy { padding: 28px 0 32px; max-width: 880px; }
+  .hero h1 { font-size: clamp(25px, 3.7vw, 46px); line-height: 1.14; margin-bottom: 18px; }
+  .hero .lead { font-size: 18px; color: var(--on-mask-mute); max-width: 52ch; margin: 0 0 26px; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+  /* the production line */
+  .line-stage { padding-bottom: 64px; }
+  .line-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 28px; align-items: start; }
+  @media (max-width: 1040px) { .line-grid { grid-template-columns: minmax(0, 1fr); } }
+  .line-board {
+    background: var(--mask-deep); border: 1px solid var(--mask-line); border-radius: 10px;
+    padding: 18px 20px 14px;
+  }
+  .line-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .line-title { font-size: 14px; color: var(--on-mask-mute); }
+  .seg { display: inline-flex; border: 1px solid var(--mask-line); border-radius: 6px; overflow: hidden; }
+  .seg button {
+    font-family: var(--text); font-size: 14px; font-weight: 500; color: var(--on-mask-mute);
+    background: transparent; border: 0; padding: 8px 14px; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--mask-line); }
+  .seg button[aria-pressed="true"] { background: var(--gold); color: #1A1204; }
+  .seg button[aria-pressed="true"].is-bad { background: var(--bad); color: #fff; }
+  .seg button:not([aria-pressed="true"]):hover { color: #fff; }
+  #lineHost { width: 100%; }
+  #lineHost svg { width: 100%; height: auto; overflow: visible; }
+  .trace-base { fill: none; stroke: #27437F; stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+  .trace-done { fill: none; stroke: var(--gold); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+  .pad-ring { fill: var(--mask-deep); stroke: var(--gold); stroke-width: 2.5; transition: stroke .2s; }
+  .pad-dot { fill: transparent; transition: fill .2s; }
+  .pad.pass .pad-dot { fill: var(--ok); }
+  .pad.fail .pad-ring { stroke: var(--bad); }
+  .pad.fail .pad-dot { fill: var(--bad); }
+  .pad-x { stroke: #fff; stroke-width: 2.4; stroke-linecap: round; opacity: 0; transition: opacity .2s; }
+  .pad.fail .pad-x { opacity: 1; }
+  .pad-label { font-family: var(--text); font-size: 14px; fill: var(--on-mask); font-weight: 500; }
+  .pad.fail .pad-label { fill: #FF9D93; }
+  .unit-body { fill: var(--gold); transition: fill .2s; }
+  .unit.bad .unit-body { fill: var(--bad); }
+  .unit-dm { fill: #1A1204; }
+  .unit.bad .unit-dm { fill: #fff; }
+  .line-note { margin: 4px 0 0; font-size: 13px; color: var(--on-mask-mute); }
+
+  .passport {
+    background: var(--panel); color: var(--ink); border-radius: 10px; padding: 18px 18px 14px;
+    min-height: 100%;
+  }
+  .passport-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+  .passport-dm { flex: none; width: 84px; height: 84px; }
+  .passport-dm svg { width: 100%; height: 100%; }
+  .passport-id { font-family: var(--display); font-size: 15px; font-weight: 500; margin: 0 0 2px; }
+  .passport-sub { font-size: 13px; color: var(--mute); margin: 0; }
+  .log { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .log li {
+    display: grid; grid-template-columns: 58px 1fr; gap: 8px; padding: 8px 0;
+    border-bottom: 1px solid var(--line); font-size: 13.5px; line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+  }
+  .log time { color: var(--mute); }
+  .log li.fail { color: #B3281B; font-weight: 500; }
+  .log li.empty { color: var(--mute); display: block; }
+
+  /* ---------- statement ---------- */
+  .statement { padding: 88px 0 72px; }
+  .statement p {
+    font-size: clamp(22px, 2.9vw, 33px); line-height: 1.38; font-weight: 500;
+    letter-spacing: -0.012em; margin: 0; max-width: 28em;
+  }
+  .statement p span { color: var(--mute); font-weight: 400; }
+
+  /* ---------- stages ---------- */
+  .stages { padding: 24px 0 88px; }
+  .stages h2, .features h2 { font-size: clamp(22px, 3vw, 34px); line-height: 1.2; margin-bottom: 14px; max-width: 22em; }
+  .section-lead { color: var(--mute); max-width: 56ch; margin: 0 0 48px; }
+  .rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+  .rail::before { content: ""; position: absolute; top: 21px; left: 21px; right: 0; height: 2px; background: var(--mask); opacity: .9; }
+  .stage { padding: 0 28px 0 0; position: relative; }
+  .stage .n {
+    position: relative; width: 44px; height: 44px; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--mask); color: var(--mask);
+    font-family: var(--display); font-weight: 500; font-size: 15px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 22px;
+  }
+  .stage h3 { font-size: 17px; line-height: 1.25; margin-bottom: 10px; }
+  .stage p { margin: 0; font-size: 15.5px; color: var(--mute); max-width: 30ch; }
+  @media (max-width: 860px) {
+    .rail { grid-template-columns: 1fr; gap: 0; }
+    .rail::before { top: 21px; bottom: 21px; left: 21px; right: auto; width: 2px; height: auto; }
+    .stage { padding: 0 0 36px 66px; }
+    .stage:last-child { padding-bottom: 0; }
+    .stage .n { position: absolute; left: 0; top: 0; margin: 0; }
+    .stage h3 { padding-top: 10px; }
+  }
+
+  /* ---------- features ---------- */
+  .features { padding: 0 0 40px; }
+  .feat {
+    display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px;
+    align-items: center; padding: 52px 0; border-top: 1px solid var(--line);
+  }
+  .feat:first-of-type { margin-top: 0; }
+  @media (max-width: 900px) { .feat { grid-template-columns: 1fr; gap: 28px; padding: 40px 0; } }
+  .feat h3 { font-size: clamp(19px, 2.2vw, 25px); line-height: 1.22; margin-bottom: 14px; }
+  .feat p { margin: 0; color: var(--mute); max-width: 44ch; }
+  .viz {
+    background: var(--mask); color: var(--on-mask); border-radius: 10px; padding: 26px;
+    min-width: 0;
+  }
+  .viz .viz-cap { font-size: 13.5px; color: var(--on-mask-mute); margin: 0 0 16px; max-width: none; }
+
+  /* datamatrix chain */
+  .chain { display: flex; gap: 24px; align-items: center; }
+  .chain .tile { flex: none; background: #fff; padding: 10px; border-radius: 4px; width: 132px; height: 132px; }
+  .chain .tile svg { width: 100%; height: 100%; }
+  .chain dl { margin: 0; flex: 1; min-width: 0; }
+  .chain .row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--mask-line); font-size: 14.5px; }
+  .chain .row:first-child { border-top: 1px solid var(--mask-line); }
+  .chain dt { color: var(--on-mask-mute); }
+  .chain dd { margin: 0; font-weight: 500; text-align: right; }
+  @media (max-width: 520px) { .chain { flex-direction: column; align-items: stretch; } .chain .tile { align-self: flex-start; } }
+
+  /* poka-yoke */
+  .gate-row { display: flex; align-items: center; gap: 0; margin-bottom: 14px; }
+  .gate-row:last-child { margin-bottom: 0; }
+  .chip { flex: none; padding: 10px 14px; border-radius: 4px; font-size: 14px; font-weight: 500; background: var(--mask-deep); border: 1px solid var(--mask-line); }
+  .chip.bad { border-color: var(--bad); color: #FFB3AB; }
+  .chip.dim { opacity: .5; }
+  .wire { flex: 1; height: 2px; background: var(--gold); position: relative; min-width: 28px; }
+  .wire.cut { background: repeating-linear-gradient(90deg, var(--gold) 0 8px, transparent 8px 14px); }
+  .wire .stop {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 26px; height: 26px; border-radius: 50%; background: var(--bad); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; line-height: 1;
+  }
+  .viz .gate-msg { margin: 18px 0 0; font-size: 14px; color: var(--on-mask-mute); max-width: none; }
+  @media (max-width: 520px) { .chip { padding: 8px 10px; font-size: 13px; } }
+
+  /* plan/fact grid */
+  .pf-scroll { overflow-x: auto; }
+  .pf { border-collapse: separate; border-spacing: 3px; width: 100%; font-variant-numeric: tabular-nums; }
+  .pf th { font-weight: 500; font-size: 13px; color: var(--on-mask-mute); text-align: center; padding: 4px 0; }
+  .pf th.op { text-align: left; padding-right: 8px; color: var(--on-mask); font-size: 14px; }
+  @media (max-width: 520px) { .viz { padding: 18px; } .pf th.op { font-size: 12.5px; } .pf td { font-size: 13px; padding: 8px 0; } .pf { border-spacing: 2px; } }
+  .pf td { text-align: center; font-size: 14px; font-weight: 500; padding: 9px 0; border-radius: 3px; color: #fff; }
+  .pf td.today { outline: 2px solid var(--gold); outline-offset: -2px; }
+  .live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); margin-right: 6px; animation: pulse 1.8s ease-out infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(227,174,63,.7); } 70%, 100% { box-shadow: 0 0 0 8px rgba(227,174,63,0); } }
+
+  /* bars */
+  .bars { display: grid; gap: 12px; position: relative; padding-right: 54px; }
+  .bar-row { display: grid; grid-template-columns: 88px 1fr; gap: 12px; align-items: center; font-size: 14px; }
+  .bar-track { position: relative; height: 22px; background: var(--mask-deep); border-radius: 3px; }
+  .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--on-mask); border-radius: 3px; }
+  .bar-fill.low { background: var(--gold); }
+  .bar-val { position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); font-weight: 500; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .norm-line { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 2px dashed var(--gold); }
+  .norm-lbl { position: absolute; bottom: -24px; font-size: 12.5px; color: var(--gold); transform: translateX(-50%); white-space: nowrap; }
+  .bars-wrap { padding-bottom: 22px; }
+
+  /* ---------- register ---------- */
+  .register { background: var(--mask-deep); color: var(--on-mask); padding: 88px 0; position: relative; overflow: hidden; }
+  .register::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(255,255,255,.07) 1.2px, transparent 1.6px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(to top, #000 0%, transparent 80%);
+    -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 80%);
+  }
+  .register .wrap { position: relative; }
+  .reg-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: start; }
+  @media (max-width: 920px) { .reg-grid { grid-template-columns: 1fr; gap: 40px; } }
+  .register h2 { font-size: clamp(24px, 3.4vw, 38px); line-height: 1.18; margin-bottom: 18px; }
+  .register .lead { color: var(--on-mask-mute); margin: 0 0 28px; max-width: 42ch; }
+  .agenda { list-style: none; padding: 0; margin: 0 0 22px; border-top: 1px solid var(--mask-line); }
+  .agenda li { padding: 14px 0; border-bottom: 1px solid var(--mask-line); font-size: 16px; }
+  .reg-foot { color: var(--on-mask-mute); font-size: 15px; margin: 0; max-width: 46ch; }
+  form.signup { background: var(--mask); border: 1px solid var(--mask-line); border-radius: 10px; padding: 30px; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 7px; }
+  .field .opt { color: var(--on-mask-mute); font-weight: 400; }
+  .field input {
+    width: 100%; font-family: var(--text); font-size: 16px; color: var(--ink);
+    background: #fff; border: 1.5px solid transparent; border-radius: 6px; padding: 12px 14px;
+  }
+  .field input::placeholder { color: #7C879E; }
+  .field input:focus-visible { outline: 3px solid var(--gold); outline-offset: 1px; }
+  form.signup .btn { width: 100%; margin-top: 4px; }
+  .form-note { font-size: 13px; color: var(--on-mask-mute); margin: 14px 0 0; }
+  .form-msg { margin: 14px 0 0; font-size: 14.5px; padding: 12px 14px; border-radius: 6px; display: none; }
+  .form-msg.show { display: block; }
+  .form-msg.err { background: rgba(226,72,58,.18); border: 1px solid var(--bad); color: #FFD2CD; }
+  .done { display: none; background: var(--mask); border: 1px solid var(--ok); border-radius: 10px; padding: 30px; }
+  .done h3 { font-size: 20px; margin-bottom: 10px; }
+  .done p { margin: 0; color: var(--on-mask-mute); }
+  .done.show { display: block; }
+
+  footer { padding: 36px 0 44px; color: var(--mute); font-size: 14px; }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .live { animation: none; }
+    * { transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="topbar">
+      <a class="wordmark" href="#top">MES</a>
+      <nav aria-label="Разделы">
+        <a href="#process">Путь заказа</a>
+        <a href="#features">Возможности</a>
+        <a href="#register">Вебинар</a>
+      </nav>
+    </div>
+
+    <div class="hero-copy">
+      <h1>Каждое изделие прослеживается до последней операции</h1>
+      <p class="lead">Система связывает заказ, техпроцесс и каждую операцию в одну цепочку. Статус видно в реальном времени, а брак не проходит дальше.</p>
+      <div class="cta-row">
+        <a class="btn btn-gold" href="#register">Записаться на вебинар</a>
+        <a class="btn btn-line" href="#process">Как это работает</a>
+      </div>
+    </div>
+
+    <div class="line-stage">
+      <div class="line-grid">
+        <div class="line-board">
+          <div class="line-top">
+            <span class="line-title" id="lineTitle">Так плата проходит по линии. Выберите сценарий:</span>
+            <div class="seg" role="group" aria-labelledby="lineTitle">
+              <button type="button" id="modeOk" aria-pressed="true">Плата без замечаний</button>
+              <button type="button" id="modeBad" class="is-bad" aria-pressed="false">Плата с дефектом</button>
+            </div>
+          </div>
+          <div id="lineHost" aria-hidden="true"></div>
+          <p class="line-note" id="lineNote">Иллюстрация: данные условные.</p>
+          <p class="sr-only">Иллюстрация: изделие последовательно проходит монтаж SMD, монтаж THT, сборку, тестирование и упаковку. Если на тестировании найден дефект, система не допускает изделие к упаковке.</p>
+        </div>
+        <aside class="passport" aria-hidden="true">
+          <div class="passport-head">
+            <div class="passport-dm" id="pDm"></div>
+            <div>
+              <p class="passport-id" id="pId">SN 0417</p>
+              <p class="passport-sub">Паспорт изделия</p>
+            </div>
+          </div>
+          <ul class="log" id="pLog"></ul>
+        </aside>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="statement">
+    <div class="wrap">
+      <p>Все производственные процессы на одной платформе: от расчёта при заключении контракта до отгрузки готовой продукции. <span>Данные доступны и понятны на каждом шаге.</span></p>
+    </div>
+  </section>
+
+  <section class="stages" id="process">
+    <div class="wrap">
+      <h2>Путь заказа проходит четыре стадии</h2>
+      <p class="section-lead">Каждая стадия фиксируется в системе и доступна в любой момент, а не только после завершения.</p>
+      <div class="rail">
+        <div class="stage">
+          <div class="n">1</div>
+          <h3>Подготовка заказа</h3>
+          <p>Карточка проекта, техпроцесс и ресурсная спецификация готовы ещё до начала производства.</p>
+        </div>
+        <div class="stage">
+          <div class="n">2</div>
+          <h3>Обеспечение производства</h3>
+          <p>Комплектация проходит входной контроль и регистрируется. Производство планируется с учётом загрузки линии.</p>
+        </div>
+        <div class="stage">
+          <div class="n">3</div>
+          <h3>Производство</h3>
+          <p>Каждая операция от маркировки до сборки фиксируется по datamatrix-коду изделия.</p>
+        </div>
+        <div class="stage">
+          <div class="n">4</div>
+          <h3>Контроль и мониторинг</h3>
+          <p>Статус изделия и прогресс заказа видны в реальном времени на любом этапе.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="wrap">
+      <h2>Что это даёт на практике</h2>
+      <p class="section-lead">Четыре механизма, из которых складывается прозрачность производства.</p>
+
+      <article class="feat">
+        <div>
+          <h3>Прослеживаемость каждого изделия</h3>
+          <p>Datamatrix на плате и корпусе привязывает устройство к заказу и техпроцессу. По коду видно, что и когда с изделием сделали, вплоть до результатов контроля.</p>
+        </div>
+        <div class="viz">
+          <p class="viz-cap">Что система знает об изделии по одному коду</p>
+          <div class="chain">
+            <div class="tile" id="featDm" aria-hidden="true"></div>
+            <dl>
+              <div class="row"><dt>Заказ</dt><dd>SP0353</dd></div>
+              <div class="row"><dt>Плата</dt><dd>монтаж пройден</dd></div>
+              <div class="row"><dt>Корпус</dt><dd>привязан к плате</dd></div>
+              <div class="row"><dt>Контроль</dt><dd>3 из 3 тестов</dd></div>
+            </dl>
+          </div>
+        </div>
+      </article>
+
+      <article class="feat">
+        <div>
+          <h3>Ошибку нельзя допустить, даже если очень постараться</h3>
+          <p>Систему нельзя обойти вручную: собрать изделие с дефектной платой или упаковать изделие с незакрытым дефектом запрещено на уровне процесса.</p>
+        </div>
+        <div class="viz">
+          <p class="viz-cap">Операция недоступна, пока дефект не закрыт</p>
+          <div class="gate-row">
+            <span class="chip bad">Плата с дефектом</span>
+            <span class="wire cut"><span class="stop" aria-hidden="true">×</span></span>
+            <span class="chip dim">Сборка</span>
+          </div>
+          <div class="gate-row">
+            <span class="chip bad">Изделие с дефектом</span>
+            <span class="wire cut"><span class="stop" aria-hidden="true">×</span></span>
+            <span class="chip dim">Упаковка</span>
+          </div>
+          <p class="gate-msg">Запрет действует в самом процессе, а не в инструкции, которую можно не заметить.</p>
+        </div>
+      </article>
+
+      <article class="feat">
+        <div>
+          <h3>Производство видно без отчётов</h3>
+          <p>Данные поступают прямо с рабочих мест и оборудования. План, факт и отклонения по срокам видны сразу, а не по отчёту постфактум.</p>
+        </div>
+        <div class="viz">
+          <p class="viz-cap"><span class="live"></span>Изделий за день по операциям, сегодня обновляется само</p>
+          <div class="pf-scroll">
+            <table class="pf" id="pfTable">
+              <caption class="sr-only">Количество изделий по операциям и дням недели</caption>
+            </table>
+          </div>
+        </div>
+      </article>
+
+      <article class="feat">
+        <div>
+          <h3>Трудозатраты и загрузка в цифрах</h3>
+          <p>Выработка по сотруднику, норма и факт по операциям, часы по проектам. Это основа для расчёта трудоёмкости и планирования.</p>
+        </div>
+        <div class="viz">
+          <p class="viz-cap">Выработка за смену, % от нормы</p>
+          <div class="bars-wrap">
+            <div class="bars" id="bars"></div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<section class="register" id="register">
+  <div class="wrap">
+    <div class="reg-grid">
+      <div>
+        <h2>Покажем весь путь заказа в системе</h2>
+        <p class="lead">На вебинаре пройдём путь от появления заказа до готового изделия.</p>
+        <ul class="agenda">
+          <li>Как формируется заказ</li>
+          <li>Как проходит подготовка и планирование производства</li>
+          <li>Как каждая плата отслеживается на всех операциях</li>
+          <li>Как в реальном времени видно, на каком этапе заказ</li>
+        </ul>
+        <p class="reg-foot">В конце ответим на ваши вопросы. После вебинара разошлём презентацию, которая использовалась во время выступления.</p>
+      </div>
+      <div>
+        <form class="signup" id="signupForm" novalidate>
+          <div class="field">
+            <label for="f-name">Имя</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" placeholder="Как к вам обращаться" required>
+          </div>
+          <div class="field">
+            <label for="f-email">Email</label>
+            <input id="f-email" name="email" type="email" autocomplete="email" placeholder="name@company.ru" required>
+          </div>
+          <div class="field">
+            <label for="f-company">Компания <span class="opt">(необязательно)</span></label>
+            <input id="f-company" name="company" type="text" autocomplete="organization" placeholder="Название компании">
+          </div>
+          <button class="btn btn-gold" type="submit" id="submitBtn">Записаться на вебинар</button>
+          <p class="form-msg err" id="formErr" role="alert"></p>
+          <p class="form-note">Ссылку на подключение пришлём на указанный email.</p>
+        </form>
+        <div class="done" id="done" role="status" tabindex="-1">
+          <h3>Вы записаны</h3>
+          <p>Ссылку на подключение пришлём на указанный email.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>MES, система управления производством</span>
+    <a id="footMail" href="#" hidden></a>
+  </div>
+</footer>
+
+<script>
+/* ------------------------------------------------------------------
+   Настройка формы записи. Заполните ОДНО из полей:
+   formEndpoint — адрес приёма формы (например, Formspree:
+                  https://formspree.io/f/xxxxxxxx), заявки придут на почту;
+   email        — адрес, на который откроется письмо-заявка.
+   Пока оба поля пусты, форма покажет, что приём заявок не подключён.
+------------------------------------------------------------------- */
+var CONFIG = { formEndpoint: "", email: "" };
+
+(function () {
+  "use strict";
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var NS = "http://www.w3.org/2000/svg";
+
+  /* ---------- datamatrix drawing ---------- */
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function datamatrix(seed, n, fg, bg) {
+    var r = rng(seed), rects = "";
+    for (var y = 0; y < n; y++) {
+      for (var x = 0; x < n; x++) {
+        var on;
+        if (x === 0 || y === n - 1) on = true;
+        else if (y === 0) on = x % 2 === 0;
+        else if (x === n - 1) on = y % 2 === 1;
+        else on = r() > 0.5;
+        if (on) rects += '<rect x="' + x + '" y="' + y + '" width="1.02" height="1.02"/>';
+      }
+    }
+    return '<svg xmlns="' + NS + '" viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges">' +
+      '<rect width="' + n + '" height="' + n + '" fill="' + bg + '"/><g fill="' + fg + '">' + rects + "</g></svg>";
+  }
+  document.getElementById("featDm").innerHTML = datamatrix(353, 14, "#0E1830", "#FFFFFF");
+
+  /* ---------- production line ---------- */
+  var NODES = ["Заказ", "SMD", "THT", "Сборка", "Тестирование", "Упаковка", "Отгрузка"];
+  var EVENTS = [
+    "Заказ создан, техпроцесс назначен",
+    "Монтаж SMD, оптический контроль: норма",
+    "Монтаж THT и пайка: норма",
+    "Сборка в корпус: плата допущена",
+    "Функциональный тест: пройден",
+    "Упаковка: изделие допущено",
+    "Отгружено по заказу"
+  ];
+  var host = document.getElementById("lineHost");
+  var logEl = document.getElementById("pLog");
+  var idEl = document.getElementById("pId");
+  var dmEl = document.getElementById("pDm");
+  var noteEl = document.getElementById("lineNote");
+  var btnOk = document.getElementById("modeOk");
+  var btnBad = document.getElementById("modeBad");
+
+  var mode = "ok", serial = 416, clock = 0;
+  var svg, pts, cum, total, pads, unit, doneTrace, vertical = false;
+  var steps = [], si = 0, stepStart = null, stepStarted = false, pos = 0, raf = 0, W = 0;
+
+  function el(name, attrs, parent) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  function layout(w) {
+    vertical = w < 640;
+    var nodes = [], i, p = [], idxs = [];
+    var h;
+    if (!vertical) {
+      var pad = 52, gap = (w - pad * 2) / (NODES.length - 1);
+      for (i = 0; i < NODES.length; i++) nodes.push({ x: pad + gap * i, y: i % 2 === 0 ? 70 : 124 });
+      h = 196;
+    } else {
+      var gy = 74;
+      for (i = 0; i < NODES.length; i++) nodes.push({ x: i % 2 === 0 ? 44 : 118, y: 34 + gy * i });
+      h = 34 + gy * (NODES.length - 1) + 40;
+    }
+    for (i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (i === 0) { p.push([n.x, n.y]); idxs.push(0); continue; }
+      var a = nodes[i - 1], dx = n.x - a.x, dy = n.y - a.y;
+      if (!vertical) {
+        if (dy !== 0) {
+          var mx = (a.x + n.x) / 2, hh = Math.abs(dy) / 2;
+          p.push([mx - hh, a.y]); p.push([mx + hh, n.y]);
+        }
+      } else {
+        if (dx !== 0) {
+          var my = (a.y + n.y) / 2, hv = Math.abs(dx) / 2;
+          p.push([a.x, my - hv]); p.push([n.x, my + hv]);
+        }
+      }
+      p.push([n.x, n.y]); idxs.push(p.length - 1);
+    }
+    return { nodes: nodes, pts: p, idxs: idxs, h: h };
+  }
+
+  function build() {
+    W = Math.max(280, Math.round(host.clientWidth));
+    var L = layout(W);
+    host.innerHTML = "";
+    svg = el("svg", { viewBox: "0 0 " + W + " " + L.h, width: W, height: L.h, "aria-hidden": "true" }, host);
+    pts = L.pts;
+    cum = [0];
+    for (var i = 1; i < pts.length; i++) {
+      cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    }
+    total = cum[cum.length - 1];
+    var d = "M" + pts.map(function (q) { return q[0].toFixed(1) + " " + q[1].toFixed(1); }).join(" L");
+    el("path", { d: d, "class": "trace-base" }, svg);
+    doneTrace = el("path", { d: d, "class": "trace-done" }, svg);
+    doneTrace.style.strokeDasharray = "0 " + (total + 20);
+    pads = [];
+    for (var k = 0; k < NODES.length; k++) {
+      var nd = L.nodes[k];
+      var g = el("g", { "class": "pad" }, svg);
+      el("circle", { cx: nd.x, cy: nd.y, r: 12, "class": "pad-ring" }, g);
+      el("circle", { cx: nd.x, cy: nd.y, r: 5.5, "class": "pad-dot" }, g);
+      el("path", { d: "M" + (nd.x - 4) + " " + (nd.y - 4) + "l8 8M" + (nd.x + 4) + " " + (nd.y - 4) + "l-8 8", "class": "pad-x" }, g);
+      var t;
+      if (!vertical) {
+        t = el("text", { x: nd.x, y: k % 2 === 0 ? nd.y - 24 : nd.y + 38, "text-anchor": "middle", "class": "pad-label" }, g);
+      } else {
+        t = el("text", { x: nd.x + 24, y: nd.y + 5, "text-anchor": "start", "class": "pad-label" }, g);
+      }
+      t.textContent = NODES[k];
+      pads.push(g);
+    }
+    unit = el("g", { "class": "unit" }, svg);
+    el("rect", { x: -11, y: -11, width: 22, height: 22, rx: 3, "class": "unit-body" }, unit);
+    var r = rng(7 + serial);
+    for (var yy = 0; yy < 4; yy++) for (var xx = 0; xx < 4; xx++) {
+      if (xx === 0 || yy === 3 || r() > 0.5) el("rect", { x: -8 + xx * 4, y: -8 + yy * 4, width: 3, height: 3, "class": "unit-dm" }, unit);
+    }
+  }
+
+  function pointAt(dist) {
+    if (dist <= 0) return pts[0];
+    for (var i = 1; i < cum.length; i++) {
+      if (dist <= cum[i]) {
+        var f = (dist - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
+        return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f];
+      }
+    }
+    return pts[pts.length - 1];
+  }
+  function nodeDist(k) { return cum[nodeIdx[k]]; }
+  var nodeIdx = [];
+  function computeNodeIdx() {
+    var L = layout(W); nodeIdx = L.idxs;
+  }
+
+  function fmtClock(s) {
+    var h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60, c = s % 60;
+    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m + ":" + (c < 10 ? "0" : "") + c;
+  }
+  function addLog(text, fail) {
+    var first = logEl.querySelector(".empty");
+    if (first) first.remove();
+    clock += 28 + Math.floor(Math.random() * 40);
+    var li = document.createElement("li");
+    if (fail) li.className = "fail";
+    li.innerHTML = "<time></time><span></span>";
+    li.firstChild.textContent = fmtClock(clock);
+    li.lastChild.textContent = text;
+    logEl.appendChild(li);
+  }
+  function resetPassport() {
+    serial += 1;
+    clock = 8 * 3600 + 12 * 60 + Math.floor(Math.random() * 40);
+    var n = String(serial); while (n.length < 4) n = "0" + n;
+    idEl.textContent = "SN " + n;
+    dmEl.innerHTML = datamatrix(serial * 31, 12, "#0E1830", "#FFFFFF");
+    logEl.innerHTML = "";
+  }
+
+  function mark(k, state) {
+    pads[k].classList.remove("pass", "fail");
+    pads[k].classList.add(state);
+  }
+
+  function buildSteps() {
+    var s = [], k;
+    var mv = function (a, b, d) { return { t: "move", a: a, b: b, d: reduce ? 0 : d }; };
+    var wait = function (d, on) { return { t: "wait", d: reduce ? 700 : d, on: on }; };
+    s.push(wait(500, function () { mark(0, "pass"); addLog(EVENTS[0]); }));
+    var last = mode === "bad" ? 4 : 6;
+    for (k = 1; k <= last; k++) {
+      (function (k) {
+        s.push(mv(nodeDist(k - 1), nodeDist(k), 1300));
+        if (mode === "bad" && k === 4) {
+          s.push(wait(1000, function () { mark(4, "fail"); unit.classList.add("bad"); addLog("Функциональный тест: найден дефект", true); }));
+        } else {
+          s.push(wait(k === 6 ? 1500 : 800, function () { mark(k, "pass"); addLog(EVENTS[k]); }));
+        }
+      })(k);
+    }
+    if (mode === "bad") {
+      var part = nodeDist(4) + (nodeDist(5) - nodeDist(4)) * 0.5;
+      s.push(mv(nodeDist(4), part, 800));
+      s.push(wait(900, function () { mark(5, "fail"); addLog("Упаковка запрещена: дефект не закрыт", true); }));
+      s.push(mv(part, nodeDist(4), 800));
+      s.push(wait(1800, null));
+    } else {
+      s.push(wait(1600, null));
+    }
+    return s;
+  }
+
+  function ease(p) { return p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
+
+  function render() {
+    var q = pointAt(pos);
+    unit.setAttribute("transform", "translate(" + q[0].toFixed(1) + " " + q[1].toFixed(1) + ")");
+    var done = pos;
+    if (mode === "bad") done = Math.min(pos, nodeDist(4) + (nodeDist(5) - nodeDist(4)) * 0.5);
+    doneTrace.style.strokeDasharray = done.toFixed(1) + " " + (total + 20);
+  }
+
+  function tick(ts) {
+    raf = requestAnimationFrame(tick);
+    var s = steps[si];
+    if (!s) return;
+    if (stepStart === null) { stepStart = ts; stepStarted = false; }
+    if (!stepStarted) { stepStarted = true; if (s.on) s.on(); }
+    var p = s.d === 0 ? 1 : Math.min(1, (ts - stepStart) / s.d);
+    if (s.t === "move") pos = s.a + (s.b - s.a) * ease(p);
+    render();
+    if (p >= 1) {
+      if (s.t === "move") pos = s.b;
+      si++; stepStart = null;
+      if (si >= steps.length) run();
+    }
+  }
+
+  function run() {
+    cancelAnimationFrame(raf);
+    resetPassport();
+    build();
+    computeNodeIdx();
+    steps = buildSteps(); si = 0; stepStart = null; pos = 0;
+    render();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setMode(m) {
+    mode = m;
+    btnOk.setAttribute("aria-pressed", m === "ok");
+    btnBad.setAttribute("aria-pressed", m === "bad");
+    noteEl.textContent = m === "bad"
+      ? "На тестировании найден дефект, поэтому система не допускает плату к упаковке."
+      : "Иллюстрация: данные условные.";
+    run();
+  }
+  btnOk.addEventListener("click", function () { setMode("ok"); });
+  btnBad.addEventListener("click", function () { setMode("bad"); });
+
+  var resizeT;
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(function () {
+      var w = Math.round(host.clientWidth);
+      if (!w || Math.abs(w - W) < 2) return;
+      clearTimeout(resizeT);
+      resizeT = setTimeout(run, 150);
+    }).observe(host);
+  }
+  run();
+
+  /* ---------- plan/fact mini grid ---------- */
+  (function () {
+    var days = ["Пн", "Вт", "Ср", "Чт", "Пт"];
+    var rows = [
+      ["Монтаж SMD", [120, 140, 135, 150, 90]],
+      ["Монтаж THT", [100, 120, 130, 125, 80]],
+      ["Сборка", [90, 110, 120, 130, 70]],
+      ["Тестирование", [85, 105, 115, 125, 60]],
+      ["Упаковка", [80, 100, 110, 120, 50]]
+    ];
+    var t = document.getElementById("pfTable");
+    var html = "<thead><tr><th></th>" + days.map(function (d) { return "<th>" + d + "</th>"; }).join("") + "</tr></thead><tbody>";
+    rows.forEach(function (r) {
+      html += '<tr><th class="op" scope="row">' + r[0] + "</th>";
+      r[1].forEach(function (v, i) {
+        var a = (0.18 + (v / 150) * 0.62).toFixed(2);
+        html += '<td class="' + (i === 4 ? "today" : "") + '" style="background:rgba(112,160,255,' + a + ')">' + v + "</td>";
+      });
+      html += "</tr>";
+    });
+    t.insertAdjacentHTML("beforeend", html + "</tbody>");
+  })();
+
+  /* ---------- bars ---------- */
+  (function () {
+    var data = [["Оператор 1", 112], ["Оператор 2", 98], ["Оператор 3", 105], ["Оператор 4", 87], ["Оператор 5", 121]];
+    var max = 130, html = "";
+    data.forEach(function (d) {
+      var w = (d[1] / max * 100).toFixed(1);
+      html += '<div class="bar-row"><span>' + d[0] + '</span><div class="bar-track"><div class="bar-fill' + (d[1] < 100 ? " low" : "") + '" style="width:' + w + '%"></div><span class="bar-val">' + d[1] + "%</span></div></div>";
+    });
+    var normLeft = (100 / max * 100).toFixed(1);
+    html += '<div style="position:absolute;top:0;bottom:0;left:100px;right:54px;pointer-events:none"><div class="norm-line" style="left:' + normLeft + '%"></div><span class="norm-lbl" style="left:' + normLeft + '%">норма</span></div>';
+    document.getElementById("bars").innerHTML = html;
+  })();
+
+  /* ---------- registration form ---------- */
+  var form = document.getElementById("signupForm");
+  var errEl = document.getElementById("formErr");
+  var done = document.getElementById("done");
+  var btn = document.getElementById("submitBtn");
+  function showErr(m) { errEl.textContent = m; errEl.classList.add("show"); }
+  function showDone() { form.style.display = "none"; done.classList.add("show"); done.focus(); }
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    errEl.classList.remove("show");
+    var name = form.elements.name.value.trim(), email = form.elements.email.value.trim();
+    if (!name) { showErr("Укажите имя."); form.elements.name.focus(); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr("Проверьте email: он должен быть в формате name@company.ru."); form.elements.email.focus(); return; }
+    if (CONFIG.formEndpoint) {
+      btn.disabled = true; btn.textContent = "Отправляем";
+      fetch(CONFIG.formEndpoint, { method: "POST", headers: { Accept: "application/json" }, body: new FormData(form) })
+        .then(function (r) { if (r.ok) showDone(); else throw new Error("bad status"); })
+        .catch(function () { btn.disabled = false; btn.textContent = "Записаться на вебинар"; showErr("Заявка не отправилась. Попробуйте ещё раз или напишите нам на почту."); });
+    } else if (CONFIG.email) {
+      var body = "Имя: " + name + "\nEmail: " + email + "\nКомпания: " + form.elements.company.value.trim();
+      window.location.href = "mailto:" + CONFIG.email + "?subject=" + encodeURIComponent("Запись на вебинар") + "&body=" + encodeURIComponent(body);
+      showDone();
+    } else {
+      showErr("Приём заявок пока не подключён. Попробуйте позже.");
+    }
+  });
+  if (CONFIG.email) {
+    var fm = document.getElementById("footMail");
+    fm.textContent = CONFIG.email; fm.href = "mailto:" + CONFIG.email; fm.hidden = false;
+  }
+})();
+</script>
+</body>
+</html>
